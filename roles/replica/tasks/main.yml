@@ -1,0 +1,135 @@
+---
+- name: Install PyMySQL python package
+  pip:
+    name:
+      - PyMySQL
+
+- name: Copy project
+  copy:
+    src: replica
+    dest: /root
+    mode: 0755
+
+- name: Copy .env
+  template:
+    src: .env.j2
+    dest: /root/replica/.env
+    mode: 0640
+
+- name: Create a directory if it does not exist
+  file:
+    path: /root/replica/mysql
+    state: directory
+    mode: 0755
+    owner: 1001
+
+- name: Copy initdb.sql
+  template:
+    src: initdb.sql.j2
+    dest: /root/replica/initdb.sql
+    mode: 0644
+
+- name: Copy my-exporter.cnf
+  template:
+    src: my-exporter.cnf.j2
+    dest: /root/replica/my-exporter.cnf
+    mode: 0644
+
+- name: Create a directory for certs
+  file:
+    path: /root/certs
+    state: directory
+    mode: 0755
+
+- name: Get CA crt
+  command: cat /root/certs/CA.crt
+  delegate_to: logging
+  register: ca_crt
+  changed_when: false
+
+- name: Deploy CA crt
+  copy:
+    content: "{{ ca_crt.stdout }}"
+    dest: /root/certs/CA.crt
+    mode: 0644
+
+- name: Get database crt
+  command: cat /root/certs/database.crt
+  delegate_to: logging
+  register: database_crt
+  changed_when: false
+
+- name: Deploy database crt
+  copy:
+    content: "{{ database_crt.stdout }}"
+    dest: /root/certs/database.crt
+    mode: 0644
+
+- name: Get database key
+  command: cat /root/certs/database.key
+  delegate_to: logging
+  register: database_key
+  changed_when: false
+
+- name: Deploy database key
+  copy:
+    content: "{{ database_key.stdout }}"
+    dest: /root/certs/database.key
+    mode: 0644
+
+- name: Get client crt
+  command: cat /root/certs/client.crt
+  delegate_to: logging
+  register: client_crt
+  changed_when: false
+
+- name: Deploy client crt
+  copy:
+    content: "{{ client_crt.stdout }}"
+    dest: /root/certs/client.crt
+    mode: 0644
+
+- name: Get client key
+  command: cat /root/certs/client.key
+  delegate_to: logging
+  register: client_key
+  changed_when: false
+
+- name: Deploy client key
+  copy:
+    content: "{{ client_key.stdout }}"
+    dest: /root/certs/client.key
+    mode: 0644
+
+- name: Copy docker-compose.override.yaml
+  template:
+    src: docker-compose.override.yaml.j2
+    dest: /root/replica/docker-compose.override.yaml
+    mode: 0644
+
+- name: Wait for MySQL Master
+  shell: "telnet database 3306 || true"
+  register: result
+  until: result.stdout.find("caching_sha2_password") != -1
+  retries: 12
+  delay: 10
+  changed_when: false
+
+- name: Run containers
+  command:
+    cmd: docker-compose up -d
+    chdir: /root/replica
+  changed_when: false
+
+- name: Switch replica to read only
+  mysql_query:
+    ca_cert: /root/certs/CA.crt
+    client_cert: /root/certs/client.crt
+    client_key: /root/certs/client.key
+    login_user: "{{ database_root_user }}"
+    login_password: "{{ database_root_password }}"
+    check_hostname: true
+    login_host: replica
+    query:
+      - FLUSH TABLES WITH READ LOCK
+      - SET GLOBAL read_only=ON

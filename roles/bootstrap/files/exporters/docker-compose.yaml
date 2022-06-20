@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  node-exporter:
+    image: ${NODE_EXPORTER_IMAGE}
+    restart: always
+    container_name: node-exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - 9100:9100
+    networks:
+      exporters:
+
+  cadvisor:
+    image: cadvisor
+    build:
+      dockerfile: Dockerfile.cadvisor
+      args:
+        - CADVISOR_IMAGE
+    restart: always
+    container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - '/:/rootfs:ro'
+      - '/var/run:/var/run:rw'
+      - '/sys:/sys:ro'
+      - '/var/lib/docker/:/var/lib/docker:ro'
+      - '/dev/disk/:/dev/disk:ro'
+      - '/sys/fs/cgroup:/sys/fs/cgroup:ro'
+    ports:
+      - 9101:8080
+    networks:
+      exporters:
+
+networks:
+  exporters:

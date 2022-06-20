@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  mysql-backup:
+    image: ${MYSQL_BACKUP_IMAGE}
+    container_name: mysql-backup
+    restart: always
+    volumes:
+      - ./backup:/backup
+      - /root/certs:/certs
+    environment:
+      - MYSQL_SSL_OPTS=${MYSQL_SSL_OPTS}
+      - MYSQL_HOST=${MYSQL_HOST:-replica}
+      - MYSQL_USER=${MYSQL_USER:-root}
+      - MYSQL_PASS=${MYSQL_PASS:-password}
+      - MAX_BACKUPS=14
+      - INIT_BACKUP=1
+      - CRON_TIME=0 1 * * *
+      - TZ=Europe/Moscow
+    networks:
+      - backup
+
+networks:
+  backup:

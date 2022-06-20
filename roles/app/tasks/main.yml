@@ -1,0 +1,32 @@
+---
+- name: Copy project
+  copy:
+    src: app
+    dest: /root
+    mode: 0755
+
+- name: Copy .env
+  template:
+    src: .env.j2
+    dest: /root/app/.env
+    mode: 0640
+
+- name: Copy docker-compose.override.yaml
+  template:
+    src: docker-compose.override.yaml.j2
+    dest: /root/app/docker-compose.override.yaml
+    mode: 0644
+
+- name: Copy wp-auto-config.override.yaml
+  template:
+    src: wp-auto-config.override.yaml.j2
+    dest: /root/app/wp-auto-config.override.yaml
+    mode: 0644
+
+- name: Run containers
+  command:
+    cmd: >
+      docker-compose -f docker-compose.yaml -f docker-compose.override.yaml -f wp-auto-config.yaml
+      -f wp-auto-config.override.yaml run --name wp_autoconfig --rm wp-auto-config
+    chdir: /root/app
+  changed_when: false

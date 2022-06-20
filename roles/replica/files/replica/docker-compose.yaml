@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  mysql-replica:
+    image: ${MYSQL_IMAGE}
+    container_name: mysql-replica
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+      - ./mysql:/bitnami/mysql/data
+      - /root/certs:/certs
+      - ./my.cnf:/opt/bitnami/mysql/conf/my.cnf
+    environment:
+      - TZ=Europe/Moscow
+      - MYSQL_ROOT_USER=${DATABASE_ROOT_USER:-root}
+      - MYSQL_ROOT_PASSWORD=${DATABASE_ROOT_PASSWORD:-password}
+    healthcheck:
+      test: ['CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh']
+      interval: 15s
+      timeout: 5s
+      retries: 6
+    networks:
+      replica:
+        aliases:
+          - replica
+
+  mysql-replica-exporter:
+    image: ${MYSQL_EXPORTER_IMAGE}
+    container_name: mysql-replica-exporter
+    restart: always
+    ports:
+      - 9104:9104
+    volumes:
+      - ./my-exporter.cnf:/home/.my.cnf
+      - /etc/localtime:/etc/localtime:ro
+      - /root/certs/client.crt:/certs/client.crt
+      - /root/certs/client.key:/certs/client.key
+      - /root/certs/CA.crt:/certs/CA.crt
+    depends_on:
+      mysql-replica:
+        condition: service_healthy
+    networks:
+      - replica
+
+networks:
+  replica:

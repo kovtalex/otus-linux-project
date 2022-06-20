@@ -1,0 +1,24 @@
+wordpress_project_name: wordpress
+wordpress_domain: wordpress.local
+
+wordpress_title: WordPress
+wordpress_theme: twentyseventeen
+wordpress_admin_email: your-email@example.com
+
+image_mysql: bitnami/mysql:8.0
+image_mysql_exporter: prom/mysqld-exporter:v0.14.0
+image_mysql_backup: kovtalex/mysql-cron-backup:latest
+
+image_nginx_fw: kovtalex/nginx-brotli:alpine
+image_nginx_app: nginx:alpine
+image_nginx_exporter: nginx/nginx-prometheus-exporter:0.10
+image_php: wordpress:php7.4-fpm-alpine
+
+image_prometheus: prom/prometheus:v2.36.1
+image_grafana: grafana/grafana:8.5.5
+image_loki: grafana/loki:2.5.0
+image_grafana_image_renderer: grafana/grafana-image-renderer:2.0.0
+image_alert_manager: prom/alertmanager:v0.24.0
+
+image_node_exporter: prom/node-exporter:v1.3.1
+image_cadvisor: gcr.io/cadvisor/cadvisor:v0.44.0

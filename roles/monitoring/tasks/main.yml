@@ -1,0 +1,48 @@
+---
+- name: Copy project
+  copy:
+    src: monitoring
+    dest: /root
+    mode: 0755
+
+- name: Copy .env
+  template:
+    src: .env.j2
+    dest: /root/monitoring/.env
+    mode: 0640
+
+- name: Create a directory if it does not exist
+  file:
+    path: /root/monitoring/grafana
+    state: directory
+    mode: 0777
+
+- name: Create a directory if it does not exist
+  file:
+    path: /root/monitoring/prometheus
+    state: directory
+    mode: 0777
+
+- name: Copy prometheus.yml
+  template:
+    src: prometheus.yml.j2
+    dest: /root/monitoring/prometheus.yml
+    mode: 0644
+
+- name: Copy grafana.ini
+  template:
+    src: grafana.ini.j2
+    dest: /root/monitoring/grafana.ini
+    mode: 0644
+
+- name: Copy docker-compose.override.yaml
+  template:
+    src: docker-compose.override.yaml.j2
+    dest: /root/monitoring/docker-compose.override.yaml
+    mode: 0644
+
+- name: Run containers
+  command:
+    cmd: docker-compose up -d --build --build
+    chdir: /root/monitoring
+  changed_when: false

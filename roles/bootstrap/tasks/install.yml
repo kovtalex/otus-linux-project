@@ -1,0 +1,123 @@
+---
+- name: Build hosts file
+  lineinfile:
+    dest: /etc/hosts
+    regexp: '.*{{ item }}$'
+    line: "{{ hostvars[item]['ansible_eth1']['ipv4']['address'] }} {{ item }}"
+    state: present
+  when: hostvars[item]['ansible_eth1']['ipv4']['address'] is defined
+  with_items: "{{ groups['all'] }}"
+
+- name: Set timezone to Europe/Moscow
+  community.general.timezone:
+    name: Europe/Moscow
+
+- name: Change rsyslog format
+  lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^\$ActionFileDefaultTemplate.*'
+    line: $ActionFileDefaultTemplate RSYSLOG_SyslogProtocol23Format
+  notify: Rsyslog restart
+
+- name: Enable EPEL Repository on CentOS 7
+  yum:
+    name: epel-release
+    state: present
+
+- name: Add Docker repo
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: 644
+
+- name: Add yum repository
+  yum_repository:
+    name: TD_Agent_Bit
+    baseurl: http://packages.fluentbit.io/centos/7/$basearch/
+    gpgcheck: true
+    gpgkey: http://packages.fluentbit.io/fluentbit.key
+    description: Fluent bit repo
+    enabled: true
+
+- name: Install packages
+  yum: pkg={{ item }} state=present update_cache=yes
+  with_items:
+    - docker-ce
+    - telnet
+    - td-agent-bit
+
+- name: Copy td-agent-bit.conf
+  template:
+    src: td-agent-bit.conf.j2
+    dest: /etc/td-agent-bit/td-agent-bit.conf
+    mode: 0644
+  notify: Fluentbit restart
+
+- name: Copy parsers.conf
+  copy:
+    src: parsers.conf
+    dest: /etc/td-agent-bit/parsers.conf
+    mode: 0644
+  notify: Fluentbit restart
+
+- name: Start Fluentbit servoce
+  systemd:
+    name: td-agent-bit
+    enabled: true
+    state: started
+
+- name: Start Docker service
+  systemd:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Update kernel settings - net.bridge.bridge-nf-call-iptables
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: 1
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Update kernel settings - net.bridge.bridge-nf-call-ip6tables
+  sysctl:
+    name: net.bridge.bridge-nf-call-ip6tables
+    value: 1
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Install docker-compose
+  get_url:
+    url: https://github.com/docker/compose/releases/download/v2.5.1/docker-compose-Linux-x86_64
+    dest: /usr/bin/docker-compose
+    mode: 0777
+
+- name: Get https://bootstrap.pypa.io/pip/2.7/get-pip.py
+  get_url:
+    url: https://bootstrap.pypa.io/pip/2.7/get-pip.py
+    dest: /tmp/get-pip.py
+    mode: 644
+
+- name: Install pip
+  command: python /tmp/get-pip.py
+  changed_when: false
+
+- name: Install python packages
+  pip:
+    name:
+      - docker
+
+- name: Enable Loki plugin
+  community.docker.docker_plugin:
+    plugin_name: grafana/loki-docker-driver:latest
+    state: enable
+  notify: Docker restart
+
+- name: Copy daemon.json
+  copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+    mode: 0644
+  notify: Docker restart

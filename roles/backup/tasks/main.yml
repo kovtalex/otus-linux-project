@@ -1,0 +1,74 @@
+---
+- name: Copy project
+  copy:
+    src: backup
+    dest: /root
+    mode: 0755
+
+- name: Copy .env
+  template:
+    src: .env.j2
+    dest: /root/backup/.env
+    mode: 0640
+
+- name: Create a directory for certs
+  file:
+    path: /root/certs
+    state: directory
+    mode: 0755
+
+- name: Get CA crt
+  command: cat /root/certs/CA.crt
+  delegate_to: logging
+  register: ca_crt
+  changed_when: false
+
+- name: Deploy CA crt
+  copy:
+    content: "{{ ca_crt.stdout }}"
+    dest: /root/certs/CA.crt
+    mode: 0644
+
+- name: Get client crt
+  command: cat /root/certs/client.crt
+  delegate_to: logging
+  register: client_crt
+  changed_when: false
+
+- name: Deploy client crt
+  copy:
+    content: "{{ client_crt.stdout }}"
+    dest: /root/certs/client.crt
+    mode: 0644
+
+- name: Get client key
+  command: cat /root/certs/client.key
+  delegate_to: logging
+  register: client_key
+  changed_when: false
+
+- name: Deploy client key
+  copy:
+    content: "{{ client_key.stdout }}"
+    dest: /root/certs/client.key
+    mode: 0644
+
+- name: Wait for MySQL Replica
+  shell: "telnet replica 3306 || true"
+  register: result
+  until: result.stdout.find("caching_sha2_password") != -1
+  retries: 12
+  delay: 10
+  changed_when: false
+
+- name: Copy docker-compose.override.yaml
+  template:
+    src: docker-compose.override.yaml.j2
+    dest: /root/backup/docker-compose.override.yaml
+    mode: 0644
+
+- name: Run containers
+  command:
+    cmd: docker-compose up -d
+    chdir: /root/backup
+  changed_when: false

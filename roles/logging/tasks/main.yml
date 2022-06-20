@@ -1,0 +1,9 @@
+---
+- name: Include task to install packages
+  import_tasks: install.yml
+
+- name: Include task to generate certs
+  import_tasks: certs.yml
+
+- name: Include task to run containers
+  import_tasks: deploy.yml

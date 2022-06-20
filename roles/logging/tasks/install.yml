@@ -1,0 +1,5 @@
+---
+- name: Install cryptography python package
+  pip:
+    name:
+      - cryptography

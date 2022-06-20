@@ -1,0 +1,96 @@
+---
+global:
+  scrape_interval: '1m'
+
+rule_files:
+- "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+      - targets:
+        - "alertmanager:9093"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+        - 'localhost:9090'
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+{% for host in groups['all'] %}
+        - '{{ host }}:9100'
+{% endfor %}
+    relabel_configs:
+{% for host in groups['all'] %}
+      - source_labels: [__address__]
+        regex: '{{ host }}:.*'
+        target_label: 'instance'
+        replacement: '{{ host }}'
+{% endfor %}
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets:    
+{% for host in groups['all'] %}
+        - '{{ host }}:9101'
+{% endfor %}
+    relabel_configs:
+{% for host in groups['all'] %}
+      - source_labels: [__address__]
+        regex: '{{ host }}:.*'
+        target_label: 'instance'
+        replacement: '{{ host }}'
+{% endfor %}
+
+  - job_name: 'docker'
+    static_configs:
+      - targets:
+{% for host in groups['all'] %}
+        - '{{ host }}:9323'
+{% endfor %}
+    relabel_configs:
+{% for host in groups['all'] %}
+      - source_labels: [__address__]
+        regex: '{{ host }}:.*'
+        target_label: 'instance'
+        replacement: '{{ host }}'
+{% endfor %}
+
+  - job_name: 'grafana-image-rendering-service'
+    static_configs:
+      - targets:
+        - 'renderer:8081'
+
+  - job_name: 'grafana_metrics'
+    static_configs:
+      - targets: 
+        - 'grafana:3000'
+
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets:
+        - 'fw:9113'
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: 'fw:.*'
+        target_label: 'instance'
+        replacement: 'fw'
+
+  - job_name: 'mysql-exporter'
+    static_configs:
+      - targets:  
+        - 'database:9104'
+        - 'replica:9104'     
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: 'database:.*'
+        target_label: 'instance'
+        replacement: 'database'
+      - source_labels: [__address__]
+        regex: 'replica:.*'
+        target_label: 'instance'
+        replacement: 'replica'

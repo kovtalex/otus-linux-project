@@ -1,0 +1,12 @@
+services:
+  webserver:
+    extra_hosts:
+{% for host in groups['all'] %}
+      - "{{ host }}:{{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}"
+{% endfor %}
+
+  nginx-exporter:
+    extra_hosts:
+{% for host in groups['all'] %}
+      - "{{ host }}:{{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}"
+{% endfor %}

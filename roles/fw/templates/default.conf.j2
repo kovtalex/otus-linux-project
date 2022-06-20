@@ -1,0 +1,141 @@
+server {
+    listen        80;
+    server_name   {{ wordpress_domain }};
+    rewrite ^(.*) https://$host$1 permanent;
+}
+
+# Wordpress
+server {
+    listen      443 ssl;
+    server_name {{ wordpress_domain }};
+
+    access_log  /dev/stdout  json;
+
+    # ssl
+    ssl_certificate /certs/fw.crt;
+    ssl_certificate_key /certs/fw.key;
+    
+    # Brotli
+    gzip off;
+    brotli_static on;
+    brotli on;
+    brotli_comp_level 6;
+    brotli_types application/atom+xml application/geo+json application/javascript application/x-javascript application/json application/ld+json application/manifest+json application/rdf+xml application/rss+xml application/xhtml+xml application/xml font/eot font/otf font/ttf image/svg+xml text/css text/javascript text/plain text/xml;
+
+    # ---------------------------------------------------------------------
+    # CACHE CONFIGURATION for Wordpress, v1.0/2018
+    # https://www.ryadel.com
+    # ---------------------------------------------------------------------
+    
+    # define nginx variables
+    set $do_not_cache 0;
+    set $skip_reason "";
+    set $bypass 0;
+    
+    # security for bypass so localhost can empty cache
+    if ($remote_addr ~ "^(127.0.0.1)$") {
+    	set $bypass $http_secret_header;
+    }
+    
+    # skip caching WordPress cookies
+    if ($http_cookie ~* "comment_author_|wordpress_(?!test_cookie)|wp-postpass_" ) {
+    	set $do_not_cache 1;
+    	set $skip_reason Cookie; 
+    }
+    
+    # Don't cache URIs containing the following segments
+    if ($request_uri ~* "/wp-admin/|/xmlrpc.php|wp-.*.php|/feed/|sitemap(_index)?.xml") {
+    	set $skip_cache 1;
+    	set $skip_reason URI; 
+    }
+    
+    # ---------------------------------------------------------------------
+    # CACHE CONFIGURATION for Wordpress - END
+    # ---------------------------------------------------------------------
+
+
+    location    / {
+        # comment out proxy_redirect if get login redirect loop
+        proxy_redirect     off;
+        proxy_cache edge-cache;
+        proxy_cache_revalidate on; 
+        proxy_ignore_headers  Expires Cache-Control;
+
+        # CACHE CONFIGURATION result
+        proxy_cache_bypass $bypass $do_not_cache;
+        proxy_no_cache $do_not_cache;
+        
+        # httpoxy exploit protection
+        proxy_set_header Proxy "";
+        # add forwarded for header 
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # add the Wordpress hostname to avoid Wordpress canonical redirect
+        proxy_set_header Host $host;
+        # proxy_set_header Host www.edge-hostname.com; 
+        proxy_set_header Connection "";
+        
+        proxy_set_header   X-Forwarded-Proto https;
+        
+        # pass requests to the origin backend     
+        proxy_pass http://app;
+    }
+}
+
+# Grafana
+server {
+    listen 443 ssl;
+    server_name grafana.{{ wordpress_domain }};
+
+    allow 192.168.0.194;
+    deny all;
+
+    # ssl
+    ssl_certificate /certs/fw.crt;
+    ssl_certificate_key /certs/fw.key;
+
+    location / {
+        proxy_set_header Host $http_host;
+        proxy_pass http://monitoring:3000;
+
+        # kill cache
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+    }   
+
+    # Proxy Grafana Live WebSocket connections.
+    location /api/ {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $http_host;
+        proxy_pass http://monitoring:3000;
+
+
+        # kill cache
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;        
+    }    
+}
+
+# Monitoring
+server {
+    listen       8080;
+    server_name  localhost;
+
+    location = /stub_status {
+        stub_status;
+
+        # kill cache
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;        
+    }
+}

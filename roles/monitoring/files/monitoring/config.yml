@@ -1,0 +1,22 @@
+global:
+  resolve_timeout: 1m
+  slack_api_url: 'https://hooks.slack.com/services'
+
+route:
+  receiver: slack-notifications
+  routes:
+    - receiver: slack-notifications
+
+receivers:
+  - name: 'slack-notifications'
+    slack_configs:
+      - channel: '#monitoring'
+        send_resolved: true
+        text: |-
+          {{ range .Alerts }}
+            *Alert:* {{ .Annotations.summary }} - `{{ .Labels.severity }}`
+            *Description:* {{ .Annotations.description }}
+            *Details:*
+            {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+            {{ end }}
+          {{ end }}

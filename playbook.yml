@@ -1,0 +1,116 @@
+---
+- name: Gathering facts
+  hosts: all
+  gather_facts: true
+
+- name: Bootstrapping
+  hosts: all
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml
+  roles:
+    - role: bootstrap
+  tags:
+    - bootstrap
+
+- name: Provisioning logging host
+  hosts: logging
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml
+  roles:
+    - role: logging
+  tags:
+    - logging
+
+- name: Provisioning monitoring host
+  hosts: monitoring
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml
+  roles:
+    - role: monitoring
+  tags:
+    - monitoring
+
+- name: Provisioning fw host
+  hosts: fw
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml
+  roles:
+    - role: fw
+  tags:
+    - fw
+
+- name: Provisioning database host
+  hosts: database
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml
+  roles:
+    - role: database
+  tags:
+    - database
+
+- name: Provisioning replica host
+  hosts: replica
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml
+  roles:
+    - role: replica
+  tags:
+    - replica
+
+- name: Promoting replica
+  hosts: replica
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml  
+  tasks:
+    - name: Promoting a read-replica to master 
+      mysql_query:
+        ca_cert: /root/certs/CA.crt
+        client_cert: /root/certs/client.crt
+        client_key: /root/certs/client.key
+        login_user: "{{ database_root_user }}"
+        login_password: "{{ database_root_password }}"
+        check_hostname: true
+        login_host: replica
+        query:
+          - STOP SLAVE
+          - RESET SLAVE ALL
+          - SET GLOBAL read_only=OFF
+  tags:
+    - never
+    - switchover
+
+- name: Provisioning app host
+  hosts: app
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml
+  roles:
+    - role: app
+  tags:
+    - app
+
+- name: Provisioning backup host
+  hosts: backup
+  gather_facts: false
+  vars_files:
+    - vars/plain.yml
+    - vars/vault.yml  
+  roles:
+    - role: backup
+  tags:
+    - backup

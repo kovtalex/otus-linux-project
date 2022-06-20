@@ -1,0 +1,30 @@
+---
+- name: Copy project
+  copy:
+    src: logging
+    dest: /root
+    mode: 0755
+
+- name: Copy .env
+  template:
+    src: .env.j2
+    dest: /root/logging/.env
+    mode: 0640
+
+- name: Create a directory if it does not exist
+  file:
+    path: /root/logging/loki
+    state: directory
+    mode: 0777
+
+- name: Copy docker-compose.override.yaml
+  template:
+    src: docker-compose.override.yaml.j2
+    dest: /root/logging/docker-compose.override.yaml
+    mode: 0755
+
+- name: Run containers
+  command:
+    cmd: docker-compose up -d
+    chdir: /root/logging
+  changed_when: false

@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: ${MYSQL_IMAGE}
+    container_name: mysql
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+      - ./mysql:/bitnami/mysql/data
+      - /root/certs:/certs
+      - ./my.cnf:/opt/bitnami/mysql/conf/my.cnf
+    environment:
+      - TZ=Europe/Moscow
+      - MYSQL_ROOT_USER=${DATABASE_ROOT_USER:-root}
+      - MYSQL_ROOT_PASSWORD=${DATABASE_ROOT_PASSWORD:-password}
+
+      - MYSQL_USER=${DATABASE_USER:-root}
+      - MYSQL_PASSWORD=${DATABASE_PASSWORD:-password}
+      - MYSQL_DATABASE=${COMPOSE_PROJECT_NAME:-wordpress}
+
+      - MYSQL_REPLICATION_MODE=master
+      - MYSQL_REPLICATION_USER=${DATABASE_REPLICATION_USER:-repl_user}
+      - MYSQL_REPLICATION_PASSWORD=${DATABASE_REPLICATION_PASSWORD:-repl_password}
+    healthcheck:
+      test: ['CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh']
+      interval: 15s
+      timeout: 5s
+      retries: 6
+    networks:
+      database:
+        aliases:
+          - database
+
+  mysql-exporter:
+    image: ${MYSQL_EXPORTER_IMAGE}
+    container_name: mysql-exporter
+    restart: always
+    ports:
+      - 9104:9104
+    volumes:
+      - ./my-exporter.cnf:/home/.my.cnf
+      - /etc/localtime:/etc/localtime:ro
+      - /root/certs/client.crt:/certs/client.crt
+      - /root/certs/client.key:/certs/client.key
+      - /root/certs/CA.crt:/certs/CA.crt
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - database
+
+networks:
+  database:

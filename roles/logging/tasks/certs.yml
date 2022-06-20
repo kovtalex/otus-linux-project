@@ -1,0 +1,102 @@
+---
+- name: Create a directory for certs
+  file:
+    path: /root/certs
+    state: directory
+    mode: 0755
+
+# CA
+- name: Create CA private key
+  openssl_privatekey:
+    path: /root/certs/CA.key
+  register: ca_key
+
+- name: Create the CA CSR
+  openssl_csr:
+    path: /root/certs/CA.csr
+    privatekey_path: "{{ ca_key.filename }}"
+    common_name: "CA"
+    basic_constraints: "CA:TRUE"
+    key_usage:
+      - keyCertSign
+      - cRLSign
+      - digitalSignature
+  register: ca_csr
+
+- name: Sign the CA CSR
+  openssl_certificate:
+    path: /root/certs/CA.crt
+    csr_path: "{{ ca_csr.filename }}"
+    privatekey_path: "{{ ca_key.filename }}"
+    provider: selfsigned
+  register: ca_crt
+
+# FW Nginx cert
+- name: Create fw CSR signing key
+  openssl_privatekey:
+    path: /root/certs/fw.key
+  register: fw_key
+
+- name: Create the CSR for the fw
+  openssl_csr:
+    path: /root/certs/fw.csr
+    privatekey_path: "{{ fw_key.filename }}"
+    common_name: "{{ wordpress_domain }}"
+    subject_alt_name: "DNS:*.{{ wordpress_domain }}"
+  register: fw_csr
+
+- name: Sign the CSR for the fw
+  openssl_certificate:
+    path: /root/certs/fw.crt
+    csr_path: "{{ fw_csr.filename }}"
+    provider: ownca
+    ownca_path: "{{ ca_crt.filename }}"
+    ownca_privatekey_path: "{{ ca_key.filename }}"
+  register: fw_crt
+
+# Database server cert
+- name: Create database CSR signing key
+  openssl_privatekey:
+    path: /root/certs/database.key
+  register: database_key
+
+- name: Create the CSR for the database
+  openssl_csr:
+    path: /root/certs/database.csr
+    privatekey_path: "{{ database_key.filename }}"
+    common_name: "database"
+    subject_alt_name: "DNS:database,DNS:replica"
+    extendedKeyUsage: "serverAuth"
+  register: database_csr
+
+- name: Sign the CSR for the database
+  openssl_certificate:
+    path: /root/certs/database.crt
+    csr_path: "{{ database_csr.filename }}"
+    provider: ownca
+    ownca_path: "{{ ca_crt.filename }}"
+    ownca_privatekey_path: "{{ ca_key.filename }}"
+  register: database_crt
+
+# Database client cert
+- name: Create client CSR signing key
+  openssl_privatekey:
+    path: /root/certs/client.key
+  register: client_key
+
+- name: Create the CSR for the client
+  openssl_csr:
+    path: /root/certs/client.csr
+    privatekey_path: "{{ client_key.filename }}"
+    common_name: "client"
+    extendedKeyUsage: "clientAuth"
+  register: client_csr
+
+- name: Sign the CSR for the client
+  openssl_certificate:
+    path: /root/certs/client.crt
+    csr_path: "{{ client_csr.filename }}"
+    provider: ownca
+    ownca_path: "{{ ca_crt.filename }}"
+    ownca_privatekey_path: "{{ ca_key.filename }}"
+  register: client_crt

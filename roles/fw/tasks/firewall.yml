@@ -1,0 +1,52 @@
+---
+- name: Enable firewalld service
+  systemd:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Add eth0 to trusted zone
+  command: "firewall-cmd --zone=trusted --add-interface=eth0 --permanent"
+  changed_when: false
+
+- name: Add eth1 to trusted zone
+  command: "firewall-cmd --zone=trusted --add-interface=eth1 --permanent"
+  changed_when: false
+
+- name: Add port 9323 to trusted zone
+  firewalld:
+    zone: trusted
+    port: 9323/tcp
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Add port 9113 to trusted zone
+  firewalld:
+    zone: trusted
+    port: 9113/tcp
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Remove ssh service from public zone
+  firewalld:
+    zone: public
+    service: ssh
+    permanent: true
+    immediate: true
+    state: disabled
+
+- name: Remove dhcpv6-client service from public zone
+  firewalld:
+    zone: public
+    service: dhcpv6-client
+    permanent: true
+    immediate: true
+    state: disabled
+
+- name: Restart docker service
+  systemd:
+    name: docker
+    state: restarted
+  changed_when: false

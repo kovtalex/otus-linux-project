@@ -1,0 +1,18 @@
+---
+- name: Docker restart
+  systemd:
+    name: docker
+    enabled: true
+    state: restarted
+
+- name: Fluentbit restart
+  systemd:
+    name: td-agent-bit
+    enabled: true
+    state: restarted
+
+- name: Rsyslog restart
+  systemd:
+    name: rsyslog
+    enabled: true
+    state: restarted

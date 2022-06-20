@@ -1,0 +1,6 @@
+---
+- name: Include task to install packages
+  import_tasks: install.yml
+
+- name: Include task to run containers
+  import_tasks: exporters.yml

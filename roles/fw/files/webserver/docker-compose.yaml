@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  webserver:
+    image: ${NGINX_IMAGE}
+    container_name: webserver
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      - TZ=Europe/Moscow
+    volumes:
+      - ./cache/nginx:/var/cache/nginx
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - /root/certs/fw.key:/certs/fw.key
+      - /root/certs/fw.crt:/certs/fw.crt
+    healthcheck:
+      test: ["CMD", "curl", "-k", "--fail", "https://localhost"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    networks:
+      - webserver
+
+  nginx-exporter:
+    image: ${NGINX_EXPORTER_IMAGE}
+    container_name: nginx-exporter
+    restart: always
+    ports:
+      - ${INTERNAL_IP_ADDRESS}:9113:9113
+    command:
+      - -nginx.scrape-uri
+      - http://webserver:8080/stub_status
+    networks:
+      webserver:
+
+networks:
+  webserver:

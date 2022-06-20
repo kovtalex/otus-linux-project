@@ -1,0 +1,24 @@
+services:
+  prometheus:
+    extra_hosts:
+{% for host in groups['all'] %}
+      - "{{ host }}:{{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}"
+{% endfor %}
+
+  alertmanager:
+    extra_hosts:
+{% for host in groups['all'] %}
+      - "{{ host }}:{{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}"
+{% endfor %}
+
+  grafana:
+    extra_hosts:
+{% for host in groups['all'] %}
+      - "{{ host }}:{{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}"
+{% endfor %}
+
+  renderer:
+    extra_hosts:
+{% for host in groups['all'] %}
+      - "{{ host }}:{{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}"
+{% endfor %}

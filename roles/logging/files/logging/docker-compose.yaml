@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  loki:
+    image: ${LOKI_IMAGE}
+    restart: always
+    container_name: loki
+    environment:
+      - TZ=Europe/Moscow
+    volumes:
+      - ./loki:/loki
+      - ./local-config.yaml:/etc/loki/local-config.yaml
+    ports:
+      - 3100:3100
+    networks:
+      - logging
+
+networks:
+  logging:

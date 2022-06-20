@@ -1,0 +1,7 @@
+---
+- name: Include task to enable firewall
+  import_tasks: firewall.yml
+  tags: firewall
+
+- name: Include task to run containers
+  import_tasks: deploy.yml

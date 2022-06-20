@@ -1,0 +1,86 @@
+---
+- name: Copy project
+  copy:
+    src: webserver
+    dest: /root
+    mode: 0755
+
+- name: Copy .env
+  template:
+    src: .env.j2
+    dest: /root/webserver/.env
+    mode: 0640
+
+- name: Copy default.conf
+  template:
+    src: default.conf.j2
+    dest: /root/webserver/default.conf
+    mode: 0644
+
+- name: Create a directory for certs
+  file:
+    path: /root/certs
+    state: directory
+    mode: 0755
+
+- name: Get CA crt
+  command: cat /root/certs/CA.crt
+  delegate_to: logging
+  register: ca_crt
+  changed_when: false
+
+- name: Deploy CA crt
+  copy:
+    content: "{{ ca_crt.stdout }}"
+    dest: /root/certs/CA.crt
+    mode: 0644
+
+- name: Get fw crt
+  command: cat /root/certs/fw.crt
+  delegate_to: logging
+  register: fw_crt
+  changed_when: false
+
+- name: Deploy fw crt
+  copy:
+    content: "{{ fw_crt.stdout }}"
+    dest: /root/certs/fw.crt
+    mode: 0644
+
+- name: Get fw key
+  command: cat /root/certs/fw.key
+  delegate_to: logging
+  register: fw_key
+  changed_when: false
+
+- name: Deploy fw key
+  copy:
+    content: "{{ fw_key.stdout }}"
+    dest: /root/certs/fw.key
+    mode: 0644
+
+- name: Copy docker-compose.override.yaml
+  template:
+    src: docker-compose.override.yaml.j2
+    dest: /root/webserver/docker-compose.override.yaml
+    mode: 0644
+
+- name: Run containers
+  command:
+    cmd: docker-compose up -d
+    chdir: /root/webserver
+  changed_when: false
+
+# - name: Get info about container
+#   docker_container_info:
+#     name: webserver
+#   register: result
+
+# - name: Does webserver container exist?
+#   debug:
+#     msg: "The container {{ 'exists' if result.exists else 'does not exist' }}"
+
+# - name: Print the status of the container
+#   debug:
+#     msg: "The webserver container status is {{ result.container['State']['Status'] }}"
+#   when: result.exists
