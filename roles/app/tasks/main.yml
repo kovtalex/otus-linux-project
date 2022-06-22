@@ -24,9 +24,17 @@
     mode: 0644
 
 - name: Run containers
-  command:
-    cmd: >
-      docker-compose -f docker-compose.yaml -f docker-compose.override.yaml -f wp-auto-config.yaml
-      -f wp-auto-config.override.yaml run --name wp_autoconfig --rm wp-auto-config
-    chdir: /root/app
-  changed_when: false
+  docker_compose:
+    project_src: /root/app
+
+- name: Run wp-auto-config container
+  docker_compose:
+    project_src: /root/app
+    build: true
+    files:
+      - docker-compose.yaml
+      - docker-compose.override.yaml
+      - wp-auto-config.yaml
+      - wp-auto-config.override.yaml
+    services:
+      - wp-auto-config

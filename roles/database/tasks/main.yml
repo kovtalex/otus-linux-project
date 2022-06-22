@@ -103,7 +103,5 @@
     mode: 0644
 
 - name: Run containers
-  command:
-    cmd: docker-compose up -d
-    chdir: /root/database
-  changed_when: false
+  docker_compose:
+    project_src: /root/database

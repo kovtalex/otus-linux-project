@@ -42,7 +42,6 @@
     mode: 0644
 
 - name: Run containers
-  command:
-    cmd: docker-compose up -d --build --build
-    chdir: /root/monitoring
-  changed_when: false
+  docker_compose:
+    project_src: /root/monitoring
+    build: true

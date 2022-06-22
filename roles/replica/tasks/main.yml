@@ -1,9 +1,4 @@
 ---
-- name: Install PyMySQL python package
-  pip:
-    name:
-      - PyMySQL
-
 - name: Copy project
   copy:
     src: replica
@@ -116,20 +111,5 @@
   changed_when: false
 
 - name: Run containers
-  command:
-    cmd: docker-compose up -d
-    chdir: /root/replica
-  changed_when: false
-
-- name: Switch replica to read only
-  mysql_query:
-    ca_cert: /root/certs/CA.crt
-    client_cert: /root/certs/client.crt
-    client_key: /root/certs/client.key
-    login_user: "{{ database_root_user }}"
-    login_password: "{{ database_root_password }}"
-    check_hostname: true
-    login_host: replica
-    query:
-      - FLUSH TABLES WITH READ LOCK
-      - SET GLOBAL read_only=ON
+  docker_compose:
+    project_src: /root/replica

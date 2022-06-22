@@ -24,7 +24,5 @@
     mode: 0755
 
 - name: Run containers
-  command:
-    cmd: docker-compose up -d
-    chdir: /root/logging
-  changed_when: false
+  docker_compose:
+    project_src: /root/logging

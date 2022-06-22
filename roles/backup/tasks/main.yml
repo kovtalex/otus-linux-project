@@ -53,6 +53,12 @@
     dest: /root/certs/client.key
     mode: 0644
 
+- name: Copy docker-compose.override.yaml
+  template:
+    src: docker-compose.override.yaml.j2
+    dest: /root/backup/docker-compose.override.yaml
+    mode: 0644
+
 - name: Wait for MySQL Replica
   shell: "telnet replica 3306 || true"
   register: result
@@ -61,14 +67,6 @@
   delay: 10
   changed_when: false
 
-- name: Copy docker-compose.override.yaml
-  template:
-    src: docker-compose.override.yaml.j2
-    dest: /root/backup/docker-compose.override.yaml
-    mode: 0644
-
 - name: Run containers
-  command:
-    cmd: docker-compose up -d
-    chdir: /root/backup
-  changed_when: false
+  docker_compose:
+    project_src: /root/backup

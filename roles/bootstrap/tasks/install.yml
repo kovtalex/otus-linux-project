@@ -9,7 +9,7 @@
   with_items: "{{ groups['all'] }}"
 
 - name: Set timezone to Europe/Moscow
-  community.general.timezone:
+  timezone:
     name: Europe/Moscow
 
 - name: Change rsyslog format
@@ -108,6 +108,7 @@
   pip:
     name:
       - docker
+      - docker-compose
 
 - name: Enable Loki plugin
   community.docker.docker_plugin:

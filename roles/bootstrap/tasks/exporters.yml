@@ -12,7 +12,11 @@
     mode: 0640
 
 - name: Run containers
-  command:
-    cmd: docker-compose up -d --build
-    chdir: /root/exporters
-  changed_when: false
+  docker_compose:
+    project_src: /root/exporters
+    build: true
+#   register: output
+
+# - name: Containers status output
+#   debug:
+#     var: output

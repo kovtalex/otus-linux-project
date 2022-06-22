@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.8"
 
 services:
   mysql:
@@ -47,8 +47,7 @@ services:
       - /root/certs/client.key:/certs/client.key
       - /root/certs/CA.crt:/certs/CA.crt
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     networks:
       - database
 

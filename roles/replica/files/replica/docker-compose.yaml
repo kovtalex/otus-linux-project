@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.8"
 
 services:
   mysql-replica:
@@ -39,8 +39,7 @@ services:
       - /root/certs/client.key:/certs/client.key
       - /root/certs/CA.crt:/certs/CA.crt
     depends_on:
-      mysql-replica:
-        condition: service_healthy
+      - mysql-replica
     networks:
       - replica
 

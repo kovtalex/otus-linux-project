@@ -66,21 +66,5 @@
     mode: 0644
 
 - name: Run containers
-  command:
-    cmd: docker-compose up -d
-    chdir: /root/webserver
-  changed_when: false
-
-# - name: Get info about container
-#   docker_container_info:
-#     name: webserver
-#   register: result
-
-# - name: Does webserver container exist?
-#   debug:
-#     msg: "The container {{ 'exists' if result.exists else 'does not exist' }}"
-
-# - name: Print the status of the container
-#   debug:
-#     msg: "The webserver container status is {{ result.container['State']['Status'] }}"
-#   when: result.exists
+  docker_compose:
+    project_src: /root/webserver
